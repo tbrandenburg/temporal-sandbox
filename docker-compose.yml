@@ -22,9 +22,8 @@ services:
       retries: 10
       start_period: 10s
 
-  # One service per bundle. To add `sleep_greet` in a later step, copy this block, rename the
-  # service and container to `worker-sleep_greet`, and set SANDBOX_BUNDLES=sleep_greet — no other
-  # changes needed.
+  # One service per bundle. To add a new bundle, copy this block, rename the service and set
+  # SANDBOX_BUNDLES accordingly — no other changes needed.
   worker-say_hello:
     build:
       context: .
@@ -36,3 +35,15 @@ services:
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_NAMESPACE: default
       SANDBOX_BUNDLES: say_hello
+
+  worker-sleep_greet:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      SANDBOX_BUNDLES: sleep_greet
