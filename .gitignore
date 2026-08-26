@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+
+# uv
+uv.lock.bak
+
+# pytest
+.pytest_cache/
+test-results/
+
+# ruff
+.ruff_cache/
+
+# playwright
+playwright-report/
+
+# env
+.env
