@@ -1,0 +1,299 @@
+{
+  "events": [
+    {
+      "eventId": "1",
+      "eventTime": "2026-08-26T15:31:08.084420740Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_STARTED",
+      "taskId": "1048620",
+      "workflowExecutionStartedEventAttributes": {
+        "workflowType": {
+          "name": "SleepGreetWorkflow"
+        },
+        "taskQueue": {
+          "name": "sleep_greet",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "IlJlcGxheSI="
+            }
+          ]
+        },
+        "workflowExecutionTimeout": "0s",
+        "workflowRunTimeout": "0s",
+        "workflowTaskTimeout": "10s",
+        "originalExecutionRunId": "01a03eb2-4eb4-7664-ab23-8e29be1feef8",
+        "identity": "temporal-cli:tom@tom-nuc7",
+        "firstExecutionRunId": "01a03eb2-4eb4-7664-ab23-8e29be1feef8",
+        "attempt": 1,
+        "firstWorkflowTaskBackoff": "0s",
+        "header": {},
+        "workflowId": "replay-sleep-greet"
+      }
+    },
+    {
+      "eventId": "2",
+      "eventTime": "2026-08-26T15:31:08.084563038Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1048621",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "sleep_greet",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "3",
+      "eventTime": "2026-08-26T15:31:08.099159414Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1048626",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "2",
+        "identity": "1@09a23db2363f",
+        "requestId": "5e3e2438-a7f3-4c64-88d2-9dee69878583",
+        "historySizeBytes": "294",
+        "workerVersion": {
+          "buildId": "132f1943a026c701c587b9f55b77d72b"
+        }
+      }
+    },
+    {
+      "eventId": "4",
+      "eventTime": "2026-08-26T15:31:08.132857970Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1048630",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "2",
+        "startedEventId": "3",
+        "identity": "1@09a23db2363f",
+        "workerVersion": {
+          "buildId": "132f1943a026c701c587b9f55b77d72b"
+        },
+        "sdkMetadata": {
+          "coreUsedFlags": [
+            1,
+            2,
+            3
+          ],
+          "sdkName": "temporal-python",
+          "sdkVersion": "1.32.0"
+        },
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "5",
+      "eventTime": "2026-08-26T15:31:08.132956882Z",
+      "eventType": "EVENT_TYPE_TIMER_STARTED",
+      "taskId": "1048631",
+      "timerStartedEventAttributes": {
+        "timerId": "1",
+        "startToFireTimeout": "10s",
+        "workflowTaskCompletedEventId": "4"
+      }
+    },
+    {
+      "eventId": "6",
+      "eventTime": "2026-08-26T15:31:18.135467233Z",
+      "eventType": "EVENT_TYPE_TIMER_FIRED",
+      "taskId": "1048635",
+      "timerFiredEventAttributes": {
+        "timerId": "1",
+        "startedEventId": "5"
+      }
+    },
+    {
+      "eventId": "7",
+      "eventTime": "2026-08-26T15:31:18.135504844Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1048636",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "1@09a23db2363f-99a9c1c10d064a4bb2b716dc918cdefe",
+          "kind": "TASK_QUEUE_KIND_STICKY",
+          "normalName": "sleep_greet"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "8",
+      "eventTime": "2026-08-26T15:31:18.142153163Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1048640",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "7",
+        "identity": "1@09a23db2363f",
+        "requestId": "9fe6cd4f-58bb-4edf-9421-ea66fad99cf2",
+        "historySizeBytes": "692",
+        "workerVersion": {
+          "buildId": "132f1943a026c701c587b9f55b77d72b"
+        }
+      }
+    },
+    {
+      "eventId": "9",
+      "eventTime": "2026-08-26T15:31:18.154322470Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1048644",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "7",
+        "startedEventId": "8",
+        "identity": "1@09a23db2363f",
+        "workerVersion": {
+          "buildId": "132f1943a026c701c587b9f55b77d72b"
+        },
+        "sdkMetadata": {},
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "10",
+      "eventTime": "2026-08-26T15:31:18.154402068Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_SCHEDULED",
+      "taskId": "1048645",
+      "activityTaskScheduledEventAttributes": {
+        "activityId": "1",
+        "activityType": {
+          "name": "greet"
+        },
+        "taskQueue": {
+          "name": "sleep_greet",
+          "kind": "TASK_QUEUE_KIND_NORMAL"
+        },
+        "header": {},
+        "input": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "IlJlcGxheSI="
+            }
+          ]
+        },
+        "scheduleToCloseTimeout": "0s",
+        "scheduleToStartTimeout": "0s",
+        "startToCloseTimeout": "10s",
+        "heartbeatTimeout": "0s",
+        "workflowTaskCompletedEventId": "9",
+        "retryPolicy": {
+          "initialInterval": "1s",
+          "backoffCoefficient": 2,
+          "maximumInterval": "100s"
+        },
+        "useWorkflowBuildId": true,
+        "priority": {}
+      }
+    },
+    {
+      "eventId": "11",
+      "eventTime": "2026-08-26T15:31:18.157606123Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_STARTED",
+      "taskId": "1048650",
+      "activityTaskStartedEventAttributes": {
+        "scheduledEventId": "10",
+        "identity": "1@09a23db2363f",
+        "requestId": "370c59de-baa0-4e48-a2be-85a7f14947e9",
+        "attempt": 1,
+        "workerVersion": {
+          "buildId": "132f1943a026c701c587b9f55b77d72b"
+        }
+      }
+    },
+    {
+      "eventId": "12",
+      "eventTime": "2026-08-26T15:31:18.165108840Z",
+      "eventType": "EVENT_TYPE_ACTIVITY_TASK_COMPLETED",
+      "taskId": "1048651",
+      "activityTaskCompletedEventAttributes": {
+        "result": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "IkhlbGxvIChhZnRlciBhIG5hcCkgUmVwbGF5Ig=="
+            }
+          ]
+        },
+        "scheduledEventId": "10",
+        "startedEventId": "11",
+        "identity": "1@09a23db2363f"
+      }
+    },
+    {
+      "eventId": "13",
+      "eventTime": "2026-08-26T15:31:18.165131572Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_SCHEDULED",
+      "taskId": "1048652",
+      "workflowTaskScheduledEventAttributes": {
+        "taskQueue": {
+          "name": "1@09a23db2363f-99a9c1c10d064a4bb2b716dc918cdefe",
+          "kind": "TASK_QUEUE_KIND_STICKY",
+          "normalName": "sleep_greet"
+        },
+        "startToCloseTimeout": "10s",
+        "attempt": 1
+      }
+    },
+    {
+      "eventId": "14",
+      "eventTime": "2026-08-26T15:31:18.170544364Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_STARTED",
+      "taskId": "1048656",
+      "workflowTaskStartedEventAttributes": {
+        "scheduledEventId": "13",
+        "identity": "1@09a23db2363f",
+        "requestId": "ee0a5d6e-6a07-41ee-a756-9175e790ea38",
+        "historySizeBytes": "1347",
+        "workerVersion": {
+          "buildId": "132f1943a026c701c587b9f55b77d72b"
+        }
+      }
+    },
+    {
+      "eventId": "15",
+      "eventTime": "2026-08-26T15:31:18.186217490Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_TASK_COMPLETED",
+      "taskId": "1048660",
+      "workflowTaskCompletedEventAttributes": {
+        "scheduledEventId": "13",
+        "startedEventId": "14",
+        "identity": "1@09a23db2363f",
+        "workerVersion": {
+          "buildId": "132f1943a026c701c587b9f55b77d72b"
+        },
+        "sdkMetadata": {},
+        "meteringMetadata": {}
+      }
+    },
+    {
+      "eventId": "16",
+      "eventTime": "2026-08-26T15:31:18.186299631Z",
+      "eventType": "EVENT_TYPE_WORKFLOW_EXECUTION_COMPLETED",
+      "taskId": "1048661",
+      "workflowExecutionCompletedEventAttributes": {
+        "result": {
+          "payloads": [
+            {
+              "metadata": {
+                "encoding": "anNvbi9wbGFpbg=="
+              },
+              "data": "IkhlbGxvIChhZnRlciBhIG5hcCkgUmVwbGF5Ig=="
+            }
+          ]
+        },
+        "workflowTaskCompletedEventId": "15"
+      }
+    }
+  ]
+}
