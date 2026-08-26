@@ -1,4 +1,4 @@
-.PHONY: install fmt lint clean build up down logs
+.PHONY: install fmt lint test clean build up down logs
 
 install:
 	uv sync
@@ -21,6 +21,9 @@ fmt:
 lint:
 	uv run ruff check --fix .
 	uv run ruff format --check .
+
+test:
+	uv run pytest
 
 clean:
 	rm -rf .venv .pytest_cache .ruff_cache test-results playwright-report
