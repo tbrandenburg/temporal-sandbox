@@ -1,7 +1,8 @@
-.PHONY: install fmt lint test clean build up down logs
+.PHONY: install fmt lint test test-e2e test-all clean build up down logs
 
 install:
 	uv sync
+	uv run playwright install chromium
 
 build:
 	docker compose build
@@ -24,6 +25,11 @@ lint:
 
 test:
 	uv run pytest
+
+test-e2e:
+	uv run pytest tests/e2e -v -m e2e --no-header -p no:cacheprovider --override-ini="addopts="
+
+test-all: test test-e2e
 
 clean:
 	rm -rf .venv .pytest_cache .ruff_cache test-results playwright-report
