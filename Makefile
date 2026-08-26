@@ -1,4 +1,4 @@
-.PHONY: install fmt lint test test-e2e test-all clean build up down logs record-history
+.PHONY: install fmt lint test test-e2e test-all clean build up down logs worker run ui record-history
 
 install:
 	uv sync
@@ -15,6 +15,15 @@ down:
 
 logs:
 	docker compose logs -f
+
+worker:
+	uv run python -m sandbox.worker $(if $(BUNDLE),$(foreach b,$(BUNDLE),--bundle $(b)),)
+
+run:
+	uv run python -m sandbox.starter $(WF) '$(ARG)'
+
+ui:
+	@echo "Open $${TEMPORAL_UI_URL:-http://127.0.0.1:8233} in your browser."
 
 fmt:
 	uv run ruff format .
