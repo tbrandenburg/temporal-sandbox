@@ -38,7 +38,10 @@ async def run_worker(client: Client, bundle: registry.Bundle) -> None:
 
 async def main() -> None:
     args = parse_args()
-    bundles = registry.resolve(args.bundle)
+    bundle_names = args.bundle
+    if not bundle_names and config.SANDBOX_BUNDLES:
+        bundle_names = [name.strip() for name in config.SANDBOX_BUNDLES.split(",") if name.strip()]
+    bundles = registry.resolve(bundle_names)
 
     print(
         f"Connecting to Temporal at {config.TEMPORAL_ADDRESS} "

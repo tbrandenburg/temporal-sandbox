@@ -1,0 +1,38 @@
+services:
+  temporal:
+    image: temporalio/temporal:latest
+    command:
+      - server
+      - start-dev
+      - --ip
+      - 0.0.0.0
+      - --ui-ip
+      - 0.0.0.0
+      - --ui-port
+      - "8233"
+    ports:
+      - "127.0.0.1:7233:7233"
+      - "127.0.0.1:8233:8233"
+    healthcheck:
+      # Explicit --address (not localhost) to sidestep the same IPv6-resolution quirk observed
+      # on the host CLI.
+      test: ["CMD", "temporal", "--address", "127.0.0.1:7233", "operator", "namespace", "describe", "default"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # One service per bundle. To add `sleep_greet` in a later step, copy this block, rename the
+  # service and container to `worker-sleep_greet`, and set SANDBOX_BUNDLES=sleep_greet — no other
+  # changes needed.
+  worker-say_hello:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      SANDBOX_BUNDLES: say_hello

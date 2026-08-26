@@ -1,7 +1,19 @@
-.PHONY: install fmt lint clean
+.PHONY: install fmt lint clean build up down logs
 
 install:
 	uv sync
+
+build:
+	docker compose build
+
+up:
+	docker compose up -d
+
+down:
+	docker compose down
+
+logs:
+	docker compose logs -f
 
 fmt:
 	uv run ruff format .

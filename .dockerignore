@@ -1,0 +1,16 @@
+.venv/
+.git/
+__pycache__/
+**/__pycache__/
+*.pyc
+tests/
+docs/
+.pytest_cache/
+.ruff_cache/
+test-results/
+playwright-report/
+.gitignore
+Makefile
+docker-compose.yml
+Dockerfile
+README.md
