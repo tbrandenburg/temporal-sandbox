@@ -1,0 +1,29 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow-greet
+  workflowType: ZigflowGreetWorkflow
+  version: 0.0.1
+  metadata:
+    activityOptions:
+      startToCloseTimeout:
+        seconds: 10
+input:
+  schema:
+    format: json
+    document:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+do:
+  - greet:
+      call: activity
+      with:
+        name: shout_greet
+        arguments:
+          - ${ $input.name }
+        taskQueue: zigflow-greet-activities
+  - finalize:
+      set:
+        message: ${ $data.greet }

@@ -23,7 +23,8 @@ services:
       start_period: 10s
 
   # One service per bundle. To add a new bundle, copy this block, rename the service and set
-  # SANDBOX_BUNDLES accordingly — no other changes needed.
+  # SANDBOX_BUNDLES accordingly — no other changes needed. Bundles with dsl_workflows also need
+  # a second "zigflow-<bundle>" service to run the DSL engine (see zigflow-zigflow_greet below).
   worker-say_hello:
     build:
       context: .
@@ -47,3 +48,38 @@ services:
       TEMPORAL_ADDRESS: temporal:7233
       TEMPORAL_NAMESPACE: default
       SANDBOX_BUNDLES: sleep_greet
+
+  worker-zigflow_greet:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      temporal:
+        condition: service_healthy
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_NAMESPACE: default
+      SANDBOX_BUNDLES: zigflow_greet
+
+  # Zigflow DSL worker: executes workflow.yaml, calls back into worker-zigflow_greet
+  # for the activity. Version pinned deliberately (0.15.0-rc1 is a release candidate,
+  # `latest` would make this build non-reproducible).
+  zigflow-zigflow_greet:
+    image: ghcr.io/zigflow/zigflow:0.15.0-rc1
+    depends_on:
+      temporal:
+        condition: service_healthy
+    # Shares temporal's network namespace and addresses it via 127.0.0.1, sidestepping a
+    # hostname-resolution quirk in zigflow's Go gRPC client: dialing the bridge-network
+    # hostname `temporal:7233` reliably times out ("context deadline exceeded") even though
+    # the hostname resolves fine and plain TCP connects fine (verified with other clients on
+    # the same network) — only the raw IP or a shared network namespace works. Same family of
+    # issue as the documented `--address 127.0.0.1:7233` workaround for the host `temporal` CLI.
+    network_mode: "service:temporal"
+    volumes:
+      - ./src/sandbox/workflows/zigflow_greet/workflow.yaml:/workflows/workflow.yaml:ro
+    command:
+      - run
+      - --file=/workflows/workflow.yaml
+      - --temporal-address=127.0.0.1:7233
+      - --disable-telemetry

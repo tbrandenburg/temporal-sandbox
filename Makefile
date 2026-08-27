@@ -1,4 +1,4 @@
-.PHONY: install fmt lint test test-e2e test-all clean build up down logs worker run ui record-history
+.PHONY: install fmt lint test test-e2e test-all clean build up down logs worker run ui record-history zigflow-validate
 
 install:
 	uv sync
@@ -31,6 +31,10 @@ fmt:
 lint:
 	uv run ruff check --fix .
 	uv run ruff format --check .
+	zigflow validate src/sandbox/workflows/zigflow_greet/workflow.yaml
+
+zigflow-validate:
+	zigflow validate src/sandbox/workflows/zigflow_greet/workflow.yaml
 
 test:
 	uv run pytest

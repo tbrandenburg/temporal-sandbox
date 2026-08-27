@@ -3,9 +3,11 @@
 A local sandbox for developing and testing Temporal workflows, driven by the `temporal` CLI, the
 Temporal Web UI, and a small Python starter script, all running against a Dockerized Temporal dev
 server. The sandbox itself is generic: any workflow can be added as a self-contained "bundle"
-(activities + workflow + its own task queue). It currently ships two bundles: `say_hello` (a
-minimal quickstart) and `sleep_greet` (a timer-based demo used to exercise Durable Execution via a
-worker-restart test).
+(activities + workflow + its own task queue). It currently ships three bundles: `say_hello` (a
+minimal quickstart), `sleep_greet` (a timer-based demo used to exercise Durable Execution via a
+worker-restart test), and `zigflow_greet` (a demo of a zigflow-DSL-defined workflow — YAML, executed
+by the separate `zigflow` CLI/binary — calling back into a Python-implemented activity; unlike the
+other two, it runs as two separate processes/services instead of one).
 
 ## Prerequisites
 
@@ -33,7 +35,14 @@ make run WF=SayHelloWorkflow ARG='"Temporal"'
 
 make run WF=SleepGreetWorkflow ARG='"Temporal"'
 # Hello (after a nap) Temporal
+
+make run WF=ZigflowGreetWorkflow ARG='{"name":"Ziggy"}'
+# HELLO ZIGGY
 ```
+
+`zigflow_greet`'s workflow logic lives in `workflow.yaml`, executed by the `zigflow` CLI/binary, not
+in a Python `@workflow.defn` class — only its activity is Python. Run `make zigflow-validate` to
+lint that YAML definition (schema + task-queue naming rules) without starting the Docker stack.
 
 You can also run the starter directly if you prefer: `uv run python -m sandbox.starter <WF> <ARG>`.
 
@@ -50,8 +59,9 @@ One worker entrypoint (`src/sandbox/worker.py`) and one starter entrypoint
 @dataclass(frozen=True)
 class Bundle:
     name: str
-    workflows: list[type]
-    activities: list[Callable]
+    workflows: list[type] = field(default_factory=list)
+    activities: list[Callable] = field(default_factory=list)
+    dsl_workflows: dict[str, str] = field(default_factory=dict)  # DSL workflow type -> queue
     task_queue: str = ""  # defaults to `name`
 
 
@@ -63,7 +73,9 @@ def resolve(names: list[str] | None) -> list[Bundle]: ...
 ```
 
 Each bundle gets its own task queue (defaulting to the bundle name), so workflows from different
-bundles never collide, and a worker can be scoped to serve only a subset of bundles.
+bundles never collide, and a worker can be scoped to serve only a subset of bundles. A bundle needs
+either `workflows` or `activities` populated; `zigflow_greet` has only `activities` plus
+`dsl_workflows`, since its workflow is a zigflow-DSL YAML file, not a Python `@workflow.defn` class.
 
 ### Adding a new workflow
 
@@ -138,6 +150,13 @@ Per `docs/INITIAL.md` §9, the layers are:
 | Replay (`test_replay.py`) | `Replayer` over committed histories in `tests/histories/` | none |
 | E2E (`tests/e2e/`) | Real Docker stack: starter, `temporal` CLI, Web UI (Playwright), worker restart | none |
 
+`zigflow_greet` has no `test_workflows.py`/`test_replay.py` coverage: both `WorkflowEnvironment` and
+`Replayer` require a Python workflow class, which this bundle doesn't have — its workflow logic is
+YAML executed by the external `zigflow` binary. Instead it's covered by `test_zigflow_definition.py`
+(YAML/Python drift + `zigflow validate`, see `make zigflow-validate`) and by
+`tests/e2e/test_zigflow_ui_e2e.py`, which is the only test that exercises the full DSL-worker +
+Python-worker chain end to end.
+
 `make record-history` (requires `make up` first) regenerates the committed replay fixtures for
 both bundles by starting fresh `SayHelloWorkflow`/`SleepGreetWorkflow` executions under fixed
 workflow IDs and re-exporting their history via `temporal workflow show -o json`; review the diff
@@ -171,10 +190,15 @@ src/sandbox/
     sleep_greet/
       activities.py             # greet() (post-sleep greeting)
       workflow.py                # SleepGreetWorkflow (10s timer) + register(Bundle(...))
+    zigflow_greet/
+      activities.py             # shout_greet() (only Python part of this bundle)
+      __init__.py                # register(Bundle(dsl_workflows={"ZigflowGreetWorkflow": "zigflow-greet"}, ...))
+      workflow.yaml               # zigflow DSL definition; no Python workflow.py
 tests/
   test_activities.py            # ActivityEnvironment unit tests
-  test_workflows.py             # start_time_skipping + Worker integration tests
-  test_replay.py                # replay determinism guard over tests/histories/*.json
+  test_workflows.py             # start_time_skipping + Worker integration tests (say_hello, sleep_greet only)
+  test_replay.py                # replay determinism guard over tests/histories/*.json (say_hello, sleep_greet only)
+  test_zigflow_definition.py     # YAML/Python drift guards + `zigflow validate` for zigflow_greet
   histories/                    # committed replay fixtures (say_hello.json, sleep_greet.json)
   e2e/
     conftest.py                 # compose up/down + readiness poll fixture
@@ -182,6 +206,7 @@ tests/
     test_cli_e2e.py             # temporal CLI start/result/describe
     test_ui_e2e.py              # Playwright assertions against the Web UI
     test_worker_restart.py      # SIGKILL a worker mid-timer, assert the workflow still completes
+    test_zigflow_ui_e2e.py      # zigflow_greet: DSL worker + Python worker cross-process chain via the Web UI
 ```
 
 ## Scope / non-goals
