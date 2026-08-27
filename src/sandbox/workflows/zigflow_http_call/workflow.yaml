@@ -1,0 +1,14 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow-http-call
+  workflowType: fetch-user
+  version: 0.0.1
+do:
+  - getUser:
+      call: http
+      output:
+        as:
+          user: ${ . }
+      with:
+        method: get
+        endpoint: https://jsonplaceholder.typicode.com/users/1

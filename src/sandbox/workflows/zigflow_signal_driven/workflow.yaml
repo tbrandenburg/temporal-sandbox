@@ -1,0 +1,25 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow-signal-driven
+  workflowType: signal
+  version: 0.0.1
+do:
+  - approveListener:
+      metadata:
+        timeout: 10s
+      listen:
+        to:
+          one:
+            with:
+              id: approve
+              type: signal
+  - outputSignal:
+      export:
+        as: '${ $context + { response: . } }'
+      set:
+        signal: ${ $data.approveListener }
+  - wait:
+      output:
+        as: ${ $context }
+      wait:
+        seconds: 5

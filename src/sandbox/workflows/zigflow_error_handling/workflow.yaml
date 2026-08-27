@@ -1,0 +1,18 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow-error-handling
+  workflowType: try-catch
+  version: 0.0.1
+do:
+  - user:
+      try:
+        - getUser:
+            call: http
+            with:
+              method: get
+              endpoint: https://jsonplaceholder.typicode.com/users/2000
+      catch:
+        do:
+          - setError:
+              set:
+                err: some error

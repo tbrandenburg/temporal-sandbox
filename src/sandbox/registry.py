@@ -23,10 +23,10 @@ REGISTRY: dict[str, Bundle] = {}
 def register(bundle: Bundle) -> None:
     if bundle.name in REGISTRY:
         raise ValueError(f"Bundle {bundle.name!r} is already registered")
-    if not bundle.workflows and not bundle.activities:
+    if not bundle.workflows and not bundle.activities and not bundle.dsl_workflows:
         raise ValueError(
-            f"Bundle {bundle.name!r} has neither workflows nor activities; "
-            "dsl_workflows alone does not register anything runnable"
+            f"Bundle {bundle.name!r} has no workflows, activities, or dsl_workflows; "
+            "nothing runnable is registered"
         )
     REGISTRY[bundle.name] = bundle
 

@@ -1,0 +1,40 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow-parallel-tasks
+  workflowType: competing-tasks
+  version: 0.0.1
+  metadata:
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 1
+do:
+  - state:
+      export:
+        as:
+          data: ${ . }
+      set:
+        id: ${ uuid }
+  - race:
+      fork:
+        compete: true
+        branches:
+          - task1:
+              do:
+                - getUser:
+                    call: http
+                    with:
+                      method: get
+                      endpoint: https://jsonplaceholder.typicode.com/users/2
+                - wait:
+                    wait:
+                      seconds: 2
+          - task2:
+              do:
+                - getUser:
+                    call: http
+                    with:
+                      method: get
+                      endpoint: https://jsonplaceholder.typicode.com/users/1
+                - wait:
+                    wait:
+                      seconds: 50
