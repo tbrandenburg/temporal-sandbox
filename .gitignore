@@ -16,6 +16,7 @@ test-results/
 
 # playwright
 playwright-report/
+.playwright-mcp/
 
 # env
 .env
