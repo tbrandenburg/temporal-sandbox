@@ -9,12 +9,15 @@ A local sandbox for developing and testing Temporal workflows, driven by the `te
 Temporal Web UI, and a small Python starter script, all running against a Dockerized Temporal dev
 server. The sandbox is generic: any workflow can be added as a self-contained "bundle" (activities
 + workflow + its own task queue) via the registry in `src/sandbox/registry.py`. It currently ships
-eight bundles: `say_hello` (quickstart), `sleep_greet` (timer demo used to prove Durable Execution
+ten bundles: `say_hello` (quickstart), `sleep_greet` (timer demo used to prove Durable Execution
 survives a worker kill), `zigflow_greet` (a zigflow-DSL YAML workflow, executed by the external
-`zigflow` binary, calling back into a Python activity — two processes instead of one), and five
-DSL-only zigflow example bundles adapted from zigflow.dev's docs (`zigflow_hello_world`,
-`zigflow_http_call`, `zigflow_error_handling`, `zigflow_parallel_tasks`, `zigflow_signal_driven`) —
-each has no Python activity at all. Every bundle folder also has an executable `run.sh` for
+`zigflow` binary, calling back into a Python activity — two processes instead of one),
+`zigflow_agentic_workflow` (a ported zigflow.dev plan/act/observe agent-loop example, calling back
+into Python activities that use opencode's free, keyless `big-pickle` model instead of the
+upstream's Ollama), and five DSL-only zigflow example bundles adapted from zigflow.dev's docs
+(`zigflow_hello_world`, `zigflow_http_call`, `zigflow_error_handling`, `zigflow_parallel_tasks`,
+`zigflow_signal_driven`) — each has no Python activity at all. Every bundle folder also has an
+executable `run.sh` for
 ad-hoc local execution without Docker Compose (see `src/sandbox/workflows/_lib.sh`). No
 persistence, no Temporal Cloud, no Kubernetes — local dev only.
 
@@ -81,3 +84,22 @@ persistence, no Temporal Cloud, no Kubernetes — local dev only.
   free ports) rather than relying on the defaults, and should be smoke-tested end-to-end against a
   real Temporal server at least once — `bash -n` syntax checks alone cannot catch this class of
   runtime port-collision failure.
+- 2026-08-27: For a zigflow DSL workflow whose top-level `do:` block is a multi-task state machine
+  (several named tasks wired together via `switch.then` jumps, e.g. the ported
+  `zigflow_agentic_workflow` bundle), zigflow registers each top-level `do:` key as its own callable
+  Temporal workflow type — the identifier actually invocable via `client.execute_workflow` is the
+  first top-level key's name, not the `document.workflowType` metadata field. All of this repo's
+  other multi-task zigflow bundles already follow this (`try-catch`, `competing-tasks`, `signal`,
+  `fetch-user` as `workflowType`, matching their first `do:` key) but it went unnoticed until a new
+  bundle was ported with a PascalCase `workflowType` that didn't match any registered type, causing
+  `test_dsl_task_queue_matches_registry` to fail only once the bundle was actually exercised
+  end-to-end. Always set `document.workflowType` to the exact name of the first top-level `do:` key
+  for multi-task DSL workflows, and verify with a real `run.sh` execution (not just
+  `zigflow validate`, which does not catch this class of mismatch) before trusting the wiring.
+- 2026-08-27: The `INPUT="${1:-{\"key\":\"value\"}}"` bash default-argument pattern (used in
+  `zigflow_greet/run.sh` and copied into new `run.sh` scripts) silently corrupts JSON when an
+  explicit `$1` is supplied, because bash's brace-matching in parameter expansion still appends a
+  spurious trailing `}` to the substituted value. It stayed unnoticed because no bundle's `run.sh`
+  had ever been invoked with an explicit override argument. Always assign the default JSON to a
+  separate variable first (`DEFAULT_INPUT='{...}'; INPUT="${1:-$DEFAULT_INPUT}"`) and test `run.sh`
+  with an explicit argument at least once, not just with its default.

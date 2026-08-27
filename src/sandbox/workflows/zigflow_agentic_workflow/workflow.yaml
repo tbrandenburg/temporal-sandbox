@@ -1,0 +1,147 @@
+document:
+  dsl: 1.0.0
+  taskQueue: zigflow-agentic-workflow
+  workflowType: agentic-workflow
+  version: 0.0.1
+  title: Agentic Workflow
+  summary: A bounded plan/act/observe loop driven by an AI planner and a tool-backed lookup activity.
+  metadata:
+    tags: [agent, for-loop, switch, activity]
+    activityOptions:
+      startToCloseTimeout:
+        minutes: 2
+
+input:
+  schema:
+    format: json
+    document:
+      type: object
+      required: [question]
+      properties:
+        question:
+          type: string
+          description: The user question the agent is trying to answer.
+        maxIterations:
+          type: integer
+          description: Upper bound on planner/tool iterations before falling back.
+          default: 5
+          minimum: 1
+
+do:
+  - agentic-workflow:
+      do:
+        - initialise:
+            export:
+              as: ${ . }
+            set:
+              question: ${ $input.question }
+              maxIterations: ${ $input.maxIterations // 5 }
+              iteration: 0
+              observations: []
+              finalAnswer: null
+              done: false
+        - agentLoop:
+            export:
+              as: ${ .[-1] // $context }
+            for:
+              in: ${ $context.maxIterations }
+            while: ${ ($context.done // false) != true }
+            do:
+              - plan:
+                  export:
+                    as: '${ $context + { plan: . } }'
+                  call: activity
+                  with:
+                    taskQueue: zigflow-agentic-workflow-activities
+                    name: agent.PlanNextStep
+                    arguments:
+                      - question: ${ $context.question }
+                        observations: ${ $context.observations }
+                        iteration: ${ $context.iteration }
+              - routeTool:
+                  export:
+                    as: '${ $context + . }'
+                  switch:
+                    - lookup:
+                        when: ${ $context.plan.tool == "lookup" }
+                        then: runLookup
+                    - finalAnswer:
+                        when: ${ $context.plan.tool == "final_answer" }
+                        then: markAnswered
+                    - default:
+                        then: markUnsupported
+        - fallbackAnswer:
+            export:
+              as: '${ $context + { fallbackAnswer: . } }'
+            switch:
+              - needsSummary:
+                  when: ${ $context.done != true }
+                  then: summarisePartialResult
+              - default:
+                  then: continue
+        - finalOutput:
+            output:
+              as: ${ . }
+            set:
+              answer: ${ $context.finalAnswer // $context.fallbackAnswer.answer }
+              iterations: ${ $context.iteration }
+              observations: ${ $context.observations }
+
+  - runLookup:
+      do:
+        - runLookup:
+            call: activity
+            with:
+              taskQueue: zigflow-agentic-workflow-activities
+              name: agent.Lookup
+              arguments:
+                - query: ${ $context.plan.arguments.query }
+        - storeLookupObservation:
+            output:
+              as: ${ . }
+            set:
+              question: ${ $context.question }
+              maxIterations: ${ $context.maxIterations }
+              iteration: ${ $context.iteration + 1 }
+              observations: '${ $context.observations + [{ tool: "lookup", input: $context.plan.arguments, output: $data.runLookup }] }'
+              finalAnswer: ${ $context.finalAnswer }
+              done: false
+
+  - markAnswered:
+      do:
+        - markAnswered:
+            output:
+              as: ${ . }
+            set:
+              question: ${ $context.question }
+              maxIterations: ${ $context.maxIterations }
+              iteration: ${ $context.iteration }
+              observations: ${ $context.observations }
+              finalAnswer: ${ $context.plan.arguments.answer }
+              done: true
+
+  - markUnsupported:
+      do:
+        - markUnsupported:
+            output:
+              as: ${ . }
+            set:
+              question: ${ $context.question }
+              maxIterations: ${ $context.maxIterations }
+              iteration: ${ $context.iteration }
+              observations: ${ $context.observations }
+              finalAnswer: '${ "Planner returned an unsupported tool: " + ($context.plan.tool // "<none>") }'
+              done: true
+
+  - summarisePartialResult:
+      do:
+        - summarisePartialResult:
+            output:
+              as: ${ . }
+            call: activity
+            with:
+              taskQueue: zigflow-agentic-workflow-activities
+              name: agent.SummarisePartialResult
+              arguments:
+                - question: ${ $context.question }
+                  observations: ${ $context.observations }
