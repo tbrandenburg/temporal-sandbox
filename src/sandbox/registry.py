@@ -1,14 +1,15 @@
 """Bundle registry: workflows/activities grouped by name, each on its own task queue."""
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
 class Bundle:
     name: str
-    workflows: list[type]
-    activities: list[Callable]
+    workflows: list[type] = field(default_factory=list)
+    activities: list[Callable] = field(default_factory=list)
+    dsl_workflows: dict[str, str] = field(default_factory=dict)
     task_queue: str = ""
 
     @property
@@ -22,6 +23,11 @@ REGISTRY: dict[str, Bundle] = {}
 def register(bundle: Bundle) -> None:
     if bundle.name in REGISTRY:
         raise ValueError(f"Bundle {bundle.name!r} is already registered")
+    if not bundle.workflows and not bundle.activities:
+        raise ValueError(
+            f"Bundle {bundle.name!r} has neither workflows nor activities; "
+            "dsl_workflows alone does not register anything runnable"
+        )
     REGISTRY[bundle.name] = bundle
 
 
