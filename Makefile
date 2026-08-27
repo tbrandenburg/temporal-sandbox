@@ -31,10 +31,13 @@ fmt:
 lint:
 	uv run ruff check --fix .
 	uv run ruff format --check .
-	zigflow validate src/sandbox/workflows/zigflow_greet/workflow.yaml
+	$(MAKE) zigflow-validate
 
 zigflow-validate:
-	zigflow validate src/sandbox/workflows/zigflow_greet/workflow.yaml
+	@for f in src/sandbox/workflows/*/workflow.yaml; do \
+		echo "Validating $$f"; \
+		zigflow validate "$$f" || exit 1; \
+	done
 
 test:
 	uv run pytest

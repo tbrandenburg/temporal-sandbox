@@ -9,13 +9,32 @@ worker-restart test), and `zigflow_greet` (a demo of a zigflow-DSL-defined workf
 by the separate `zigflow` CLI/binary — calling back into a Python-implemented activity; unlike the
 other two, it runs as two separate processes/services instead of one).
 
+It also ships five DSL-only zigflow example bundles, adapted from
+[zigflow.dev's examples](https://zigflow.dev/docs/examples/) and each demonstrating a single DSL
+feature with no Python activities at all:
+
+- `zigflow_hello_world` — minimal `set`/`output.as` example, no external calls (workflow type
+  `hello-world`, task queue `zigflow-hello-world`)
+- `zigflow_http_call` — `call: http` example fetching a user profile from a public JSON API
+  (workflow type `fetch-user`, task queue `zigflow-http-call`)
+- `zigflow_error_handling` — `try`/`catch` example recovering from a failing HTTP call (workflow
+  type `try-catch`, task queue `zigflow-error-handling`)
+- `zigflow_parallel_tasks` — `fork`/`compete: true` example racing two HTTP calls, first one wins
+  (workflow type `competing-tasks`, task queue `zigflow-parallel-tasks`)
+- `zigflow_signal_driven` — `listen` example that pauses for an external Temporal signal named
+  `approve` before completing (workflow type `signal`, task queue `zigflow-signal-driven`)
+
 ## Prerequisites
 
 - Python 3.12+
 - [`uv`](https://docs.astral.sh/uv/)
-- Docker and Docker Compose
+- Docker and Docker Compose (`make up`/`make build` also pull `ghcr.io/zigflow/zigflow:0.15.0-rc1`,
+  the DSL engine that runs the `zigflow_greet` bundle's workflow)
 - The `temporal` CLI on `PATH` (or otherwise resolvable) — used to drive workflows and to record
   replay fixtures. Verified against CLI `1.8.2` / Server `1.31.2` / UI `2.50.1`.
+- The `zigflow` CLI on `PATH` (`brew install --cask zigflow` via `brew tap zigflow/tap`) — only
+  needed for `make lint`/`make zigflow-validate` and `tests/test_zigflow_definition.py`; not
+  required to run the Docker stack itself.
 
 ## Quickstart
 
@@ -91,6 +110,15 @@ either `workflows` or `activities` populated; `zigflow_greet` has only `activiti
 
 No changes to `worker.py`, `starter.py`, or `registry.py` are needed.
 
+If the workflow logic is a zigflow YAML DSL definition instead of a Python `@workflow.defn` class
+(see `zigflow_greet` for a worked example), skip steps 2–3's workflow class and instead: register a
+`Bundle` with only `activities` populated plus `dsl_workflows={"<WorkflowType>": "<task-queue>"}`,
+add a second `zigflow-<name>` Compose service running `ghcr.io/zigflow/zigflow` against the YAML
+file, and run `zigflow validate <file>` before wiring anything else — it catches schema issues
+(e.g. `document.taskQueue` rejecting underscores) far faster than a failed Docker run. Note that
+Compose service needs `network_mode: "service:temporal"` and `--temporal-address=127.0.0.1:7233`,
+not the bridge-network hostname — see the 2026-08-27 Lessons Learned entries in `AGENTS.md` for why.
+
 ## Running workflows
 
 Three equivalent surfaces, all pointed at the same dev server:
@@ -120,6 +148,31 @@ Open `http://127.0.0.1:8233` (or run `make ui` to print the URL) and navigate to
 > **Important**: always pass `--address 127.0.0.1:7233`, never `localhost:7233`. On some hosts
 > `localhost` resolves to `::1` (IPv6) first, but the dev server only binds IPv4, producing a
 > connection failure that looks like the server isn't running when it actually is.
+
+### Running a single bundle locally (ad-hoc, no Docker Compose)
+
+Every bundle folder under `src/sandbox/workflows/<bundle>/` has an executable `run.sh`:
+
+```bash
+./src/sandbox/workflows/say_hello/run.sh                # uses a default input
+./src/sandbox/workflows/say_hello/run.sh '"Ziggy"'       # optional JSON input arg
+./src/sandbox/workflows/zigflow_hello_world/run.sh
+```
+
+Each script: checks whether a Temporal dev server is already reachable at `127.0.0.1:7233` and, if
+not, starts one and tears it down afterwards (an already-running server is never touched); starts
+whichever worker or `zigflow` process that bundle needs; triggers the workflow and prints the
+result; and cleans up whatever processes it started, in `trap ... EXIT`.
+
+These scripts are a local convenience layer, sourcing shared helpers from
+`src/sandbox/workflows/_lib.sh`. They are **not** wired into `make lint`/`make fmt`/`make
+test`/CI — they're a separate surface from `make run`/`make worker`/`make up`, useful for quickly
+poking at one bundle without touching Docker Compose. Use whichever surface fits: Docker-based or
+CI-driven work still goes through the Makefile targets.
+
+`zigflow_signal_driven/run.sh` is the one exception to the "just calls `sandbox.starter`" pattern:
+since that workflow blocks on `listen` waiting for an external signal, its script also issues a
+`temporal workflow signal --name approve` call partway through before fetching the result.
 
 ## Selecting bundles
 
@@ -157,6 +210,12 @@ YAML executed by the external `zigflow` binary. Instead it's covered by `test_zi
 `tests/e2e/test_zigflow_ui_e2e.py`, which is the only test that exercises the full DSL-worker +
 Python-worker chain end to end.
 
+The same applies to the five DSL-only example bundles (`zigflow_hello_world`, `zigflow_http_call`,
+`zigflow_error_handling`, `zigflow_parallel_tasks`, `zigflow_signal_driven`): they're parametrized
+alongside `zigflow_greet` in `test_zigflow_definition.py` (schema/task-queue drift + `zigflow
+validate`), but only `zigflow_greet` has UI e2e coverage — the five example bundles have no
+`tests/e2e/` coverage at all.
+
 `make record-history` (requires `make up` first) regenerates the committed replay fixtures for
 both bundles by starting fresh `SayHelloWorkflow`/`SleepGreetWorkflow` executions under fixed
 workflow IDs and re-exporting their history via `temporal workflow show -o json`; review the diff
@@ -166,7 +225,7 @@ before committing.
 
 ```bash
 make fmt    # ruff format
-make lint   # ruff check --fix + ruff format --check
+make lint   # ruff check --fix + ruff format --check + zigflow validate (zigflow_greet's workflow.yaml)
 ```
 
 ## Project layout
@@ -184,16 +243,40 @@ src/sandbox/
   starter.py                    # python -m sandbox.starter <WorkflowName> <json-arg>
   workflows/
     __init__.py                 # imports each bundle subpackage -> triggers register()
+    _lib.sh                      # shared helpers sourced by each bundle's run.sh
     say_hello/
       activities.py             # greet()
       workflow.py                # SayHelloWorkflow + register(Bundle(...))
+      run.sh                     # ad-hoc local run, no Docker Compose
     sleep_greet/
       activities.py             # greet() (post-sleep greeting)
       workflow.py                # SleepGreetWorkflow (10s timer) + register(Bundle(...))
+      run.sh                     # ad-hoc local run, no Docker Compose
     zigflow_greet/
       activities.py             # shout_greet() (only Python part of this bundle)
       __init__.py                # register(Bundle(dsl_workflows={"ZigflowGreetWorkflow": "zigflow-greet"}, ...))
       workflow.yaml               # zigflow DSL definition; no Python workflow.py
+      run.sh                     # ad-hoc local run, no Docker Compose
+    zigflow_hello_world/
+      __init__.py                # register(Bundle(dsl_workflows=..., no activities))
+      workflow.yaml               # minimal set/output.as example
+      run.sh                     # ad-hoc local run, no Docker Compose
+    zigflow_http_call/
+      __init__.py                # register(Bundle(dsl_workflows=..., no activities))
+      workflow.yaml               # call: http example
+      run.sh                     # ad-hoc local run, no Docker Compose
+    zigflow_error_handling/
+      __init__.py                # register(Bundle(dsl_workflows=..., no activities))
+      workflow.yaml               # try/catch example
+      run.sh                     # ad-hoc local run, no Docker Compose
+    zigflow_parallel_tasks/
+      __init__.py                # register(Bundle(dsl_workflows=..., no activities))
+      workflow.yaml               # fork/compete: true example
+      run.sh                     # ad-hoc local run, no Docker Compose
+    zigflow_signal_driven/
+      __init__.py                # register(Bundle(dsl_workflows=..., no activities))
+      workflow.yaml               # listen (external signal) example
+      run.sh                     # ad-hoc local run; also sends the 'approve' signal mid-execution
 tests/
   test_activities.py            # ActivityEnvironment unit tests
   test_workflows.py             # start_time_skipping + Worker integration tests (say_hello, sleep_greet only)

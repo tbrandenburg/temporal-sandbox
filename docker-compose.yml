@@ -83,3 +83,75 @@ services:
       - --file=/workflows/workflow.yaml
       - --temporal-address=127.0.0.1:7233
       - --disable-telemetry
+
+  # DSL-only bundles below have no Python activity, so they get only the zigflow DSL-engine
+  # service — no corresponding worker-<bundle> Python service is needed.
+  zigflow-zigflow_hello_world:
+    image: ghcr.io/zigflow/zigflow:0.15.0-rc1
+    depends_on:
+      temporal:
+        condition: service_healthy
+    network_mode: "service:temporal"
+    volumes:
+      - ./src/sandbox/workflows/zigflow_hello_world/workflow.yaml:/workflows/workflow.yaml:ro
+    command:
+      - run
+      - --file=/workflows/workflow.yaml
+      - --temporal-address=127.0.0.1:7233
+      - --disable-telemetry
+
+  zigflow-zigflow_http_call:
+    image: ghcr.io/zigflow/zigflow:0.15.0-rc1
+    depends_on:
+      temporal:
+        condition: service_healthy
+    network_mode: "service:temporal"
+    volumes:
+      - ./src/sandbox/workflows/zigflow_http_call/workflow.yaml:/workflows/workflow.yaml:ro
+    command:
+      - run
+      - --file=/workflows/workflow.yaml
+      - --temporal-address=127.0.0.1:7233
+      - --disable-telemetry
+
+  zigflow-zigflow_error_handling:
+    image: ghcr.io/zigflow/zigflow:0.15.0-rc1
+    depends_on:
+      temporal:
+        condition: service_healthy
+    network_mode: "service:temporal"
+    volumes:
+      - ./src/sandbox/workflows/zigflow_error_handling/workflow.yaml:/workflows/workflow.yaml:ro
+    command:
+      - run
+      - --file=/workflows/workflow.yaml
+      - --temporal-address=127.0.0.1:7233
+      - --disable-telemetry
+
+  zigflow-zigflow_parallel_tasks:
+    image: ghcr.io/zigflow/zigflow:0.15.0-rc1
+    depends_on:
+      temporal:
+        condition: service_healthy
+    network_mode: "service:temporal"
+    volumes:
+      - ./src/sandbox/workflows/zigflow_parallel_tasks/workflow.yaml:/workflows/workflow.yaml:ro
+    command:
+      - run
+      - --file=/workflows/workflow.yaml
+      - --temporal-address=127.0.0.1:7233
+      - --disable-telemetry
+
+  zigflow-zigflow_signal_driven:
+    image: ghcr.io/zigflow/zigflow:0.15.0-rc1
+    depends_on:
+      temporal:
+        condition: service_healthy
+    network_mode: "service:temporal"
+    volumes:
+      - ./src/sandbox/workflows/zigflow_signal_driven/workflow.yaml:/workflows/workflow.yaml:ro
+    command:
+      - run
+      - --file=/workflows/workflow.yaml
+      - --temporal-address=127.0.0.1:7233
+      - --disable-telemetry
