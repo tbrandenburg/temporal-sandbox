@@ -22,6 +22,7 @@ WORKFLOWS_DIR = Path(__file__).resolve().parents[1] / "src/sandbox/workflows"
 TASK_QUEUE_PATTERN = re.compile(r"^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$")
 
 ZIGFLOW_BUNDLES = [
+    "zigflow_agentic_workflow",
     "zigflow_greet",
     "zigflow_hello_world",
     "zigflow_http_call",
